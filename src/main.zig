@@ -7,6 +7,7 @@ const assert = std.debug.assert;
 const Builtin = enum {
     exit,
     echo,
+    type,
 };
 
 pub fn main() !void {
@@ -32,6 +33,16 @@ fn handler(T: Builtin, args: []const u8) !void {
     switch (T) {
         Builtin.exit => std.process.exit(try std.fmt.parseInt(u8, args, 10)),
         Builtin.echo => try stdout.print("{s}\n", .{args}),
+        Builtin.type => try handle_type(args),
+    }
+}
+
+fn handle_type(args: []const u8) !void {
+    const args_type = std.meta.stringToEnum(Builtin, args);
+    if (args_type) |@"type"| {
+        try stdout.print("{s} is a shell builtin\n", .{@tagName(@"type")});
+    } else {
+        try stdout.print("{s}: not found\n", .{args});
     }
 }
 fn handle_input(input: []const u8) !void {
