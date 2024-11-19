@@ -31,7 +31,7 @@ pub fn main() !void {
 fn handler(T: Builtin, args: []const u8) !void {
     switch (T) {
         Builtin.exit => std.process.exit(try std.fmt.parseInt(u8, args, 10)),
-        Builtin.echo => try stdout.print("Not implemented yet", .{}),
+        Builtin.echo => try stdout.print("{s}\n", .{args}),
     }
 }
 fn handle_input(input: []const u8) !void {
