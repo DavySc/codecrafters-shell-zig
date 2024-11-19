@@ -13,7 +13,7 @@ const Builtin = enum {
 pub fn main() !void {
     var i: u32 = 0;
     while (true) : (i += 1) {
-        var buf: [30]u8 = undefined;
+        var buf: [1024]u8 = undefined;
         try stdout.print("$ ", .{});
         if (try stdin.readUntilDelimiterOrEof(&buf, '\n')) |line| {
             var command = line;
