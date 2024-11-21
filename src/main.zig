@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const stdout = std.io.getStdOut().writer();
 const stdin = std.io.getStdIn().reader();
 const assert = std.debug.assert;
+const Allocator = std.mem.Allocator;
 
 const Builtin = enum {
     exit,
@@ -39,12 +40,38 @@ fn handler(T: Builtin, args: []const u8) !void {
 
 fn handle_type(args: []const u8) !void {
     const args_type = std.meta.stringToEnum(Builtin, args);
+    var allocator = std.heap.GeneralPurposeAllocator(.{}){};
+    const gpa = allocator.allocator();
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    const arena_allocator = arena.allocator();
+    defer arena.deinit();
+
     if (args_type) |@"type"| {
         try stdout.print("{s} is a shell builtin\n", .{@tagName(@"type")});
+        return;
+    }
+    if (try lookup_command(args, arena_allocator)) |path| {
+        try stdout.print("{s} is {s}\n", .{ args, path });
     } else {
         try stdout.print("{s}: not found\n", .{args});
     }
 }
+
+fn lookup_command(cmd: []const u8, allocator: Allocator) !?[]const u8 {
+    const path_var = try std.process.getEnvVarOwned(allocator, "PATH");
+    var path_iter = std.mem.splitScalar(u8, path_var, std.fs.path.delimiter);
+
+    while (path_iter.next()) |current_dir_path| {
+        const dir = std.fs.openDirAbsolute(current_dir_path, .{}) catch continue;
+        const file_status = dir.statFile(cmd) catch continue;
+        if (file_status.mode == 0) {
+            continue;
+        }
+        return try std.fmt.allocPrint(allocator, "{s}{c}{s}", .{ current_dir_path, std.fs.path.sep, cmd });
+    }
+    return null;
+}
+
 fn handle_input(input: []const u8) !void {
     assert(input.len != 0);
     var input_slices = std.mem.splitScalar(u8, input, ' ');
