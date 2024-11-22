@@ -9,6 +9,7 @@ const Builtin = enum {
     exit,
     echo,
     type,
+    pwd,
 };
 
 pub fn main() !void {
@@ -31,10 +32,15 @@ pub fn main() !void {
 }
 
 fn handler(T: Builtin, args: []const u8) !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    const path_var = try std.fs.cwd().realpathAlloc(allocator, ".");
+    defer allocator.free(path_var);
     switch (T) {
         Builtin.exit => std.process.exit(try std.fmt.parseInt(u8, args, 10)),
         Builtin.echo => try stdout.print("{s}\n", .{args}),
         Builtin.type => try handle_type(args),
+        Builtin.pwd => try stdout.print("{s}\n", .{path_var}),
     }
 }
 
