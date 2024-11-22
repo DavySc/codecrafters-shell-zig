@@ -37,7 +37,7 @@ fn handler(T: Builtin, args: []const u8) !void {
     const path_var = try std.fs.cwd().realpathAlloc(allocator, ".");
     defer allocator.free(path_var);
     switch (T) {
-        Builtin.exit => std.process.exit(try std.fmt.parseInt(u8, args, 10)),
+        Builtin.exit => std.process.exit(std.fmt.parseInt(u8, args, 10) catch 0),
         Builtin.echo => try stdout.print("{s}\n", .{args}),
         Builtin.type => try handle_type(args),
         Builtin.pwd => try stdout.print("{s}\n", .{path_var}),
