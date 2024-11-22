@@ -82,6 +82,29 @@ fn handle_input(input: []const u8) !void {
     if (shell_builtin) |bi| {
         try handler(bi, rest_of_input);
     } else {
-        try stdout.print("{s}: command not found\n", .{first_arg});
+        try handle_default(first_arg, rest_of_input);
     }
+}
+
+fn handle_default(cmd: []const u8, args: []const u8) !void {
+    var allocator = std.heap.GeneralPurposeAllocator(.{}){};
+    const gpa = allocator.allocator();
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    const arena_allocator = arena.allocator();
+    defer arena.deinit();
+
+    const path = try lookup_command(cmd, arena_allocator) orelse {
+        try stdout.print("{s}: command not found\n", .{cmd});
+        return;
+    };
+
+    var argv = std.ArrayList([]const u8).init(arena_allocator);
+    try argv.append(path);
+    var args_iter = std.mem.splitScalar(u8, args, ' ');
+    while (args_iter.next()) |item| {
+        try argv.append(item);
+    }
+
+    var child_process = std.process.Child.init(argv.items, arena_allocator);
+    _ = try child_process.spawnAndWait();
 }
